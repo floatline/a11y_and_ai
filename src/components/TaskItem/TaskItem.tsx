@@ -1,7 +1,8 @@
 import { Card, Checkbox, Text, Button, Icon, Label } from '@gravity-ui/uikit';
 import { Pencil, TrashBin } from '@gravity-ui/icons';
 import type { Task } from '../../types';
-import { useChecklists } from '../../hooks/useChecklists';
+import { useDemo } from '../../hooks/useDemo';
+import { PRIORITY_OPTIONS } from '../../constants';
 import taskFieldsConfig from '../../config/taskFieldsConfig.json';
 import './TaskItem.css';
 
@@ -16,7 +17,8 @@ interface TaskItemProps {
 }
 
 export const TaskItem = ({ task, onToggle, onEdit, onDelete }: TaskItemProps) => {
-  const { hardMode } = useChecklists();
+  const { faults } = useDemo();
+  const missing = faults.missingNames;
   const deadlineDate = new Date(task.deadline);
   const isValidDate = !isNaN(deadlineDate.getTime());
   const formattedDeadline = isValidDate
@@ -34,6 +36,7 @@ export const TaskItem = ({ task, onToggle, onEdit, onDelete }: TaskItemProps) =>
           checked={task.completed}
           onUpdate={() => onToggle(task.id)}
           size="l"
+          controlProps={{ 'aria-label': missing ? undefined : `Выполнено: ${task.title}` }}
         />
         <div className="task-item__details">
           {isFieldVisible('title') && (
@@ -52,7 +55,7 @@ export const TaskItem = ({ task, onToggle, onEdit, onDelete }: TaskItemProps) =>
                 theme={task.priority === 'critical' ? 'danger' : task.priority === 'medium' ? 'warning' : 'success'}
                 size="xs"
               >
-                {task.priority}
+                {PRIORITY_OPTIONS.find((o) => o.value === task.priority)?.content ?? task.priority}
               </Label>
             </div>
           )}
@@ -69,16 +72,16 @@ export const TaskItem = ({ task, onToggle, onEdit, onDelete }: TaskItemProps) =>
           {isFieldVisible('deadline') && task.deadline && (
             <div className="task-item__deadline">
               <Text variant="caption-2" color="secondary">
-                Deadline: {formattedDeadline}
+                Срок: {formattedDeadline}
               </Text>
             </div>
           )}
         </div>
         <div className="task-item__actions">
-          <Button view="flat" size="s" onClick={() => onEdit(task)} aria-label={hardMode ? undefined : "Редактировать задачу"}>
+          <Button view="flat" size="s" onClick={() => onEdit(task)} aria-label={missing ? undefined : `Редактировать задачу «${task.title}»`}>
             <Icon data={Pencil} size={16} />
           </Button>
-          <Button view="flat" size="s" onClick={() => onDelete(task.id)} aria-label={hardMode ? undefined : "Удалить задачу"}>
+          <Button view="flat" size="s" onClick={() => onDelete(task.id)} aria-label={missing ? undefined : `Удалить задачу «${task.title}»`}>
             <Icon data={TrashBin} size={16} />
           </Button>
         </div>

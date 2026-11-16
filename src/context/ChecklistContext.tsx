@@ -1,10 +1,8 @@
-import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useState, type ReactNode } from 'react';
 import type { Checklist, Task, Priority } from '../types';
-import { loadChecklists, saveChecklists, loadHardMode, saveHardMode } from '../utils/storage';
 
 export interface ChecklistContextType {
   checklists: Checklist[];
-  hardMode: boolean;
   createChecklist: (title: string, description: string) => void;
   updateChecklist: (id: string, title: string, description: string) => void;
   deleteChecklist: (id: string) => void;
@@ -12,30 +10,18 @@ export interface ChecklistContextType {
   updateTask: (checklistId: string, taskId: string, title: string, description: string, deadline: string, priority: Priority) => void;
   toggleTask: (checklistId: string, taskId: string) => void;
   deleteTask: (checklistId: string, taskId: string) => void;
-  toggleHardMode: () => void;
 }
 
 const ChecklistContext = createContext<ChecklistContextType | undefined>(undefined);
 
 interface ChecklistProviderProps {
+  /** Demo seed; data lives only in memory, so a reload starts from it again. */
+  initial: Checklist[];
   children: ReactNode;
 }
 
-export const ChecklistProvider = ({ children }: ChecklistProviderProps) => {
-  const [checklists, setChecklists] = useState<Checklist[]>(() => loadChecklists());
-  const [hardMode, setHardMode] = useState<boolean>(() => loadHardMode());
-
-  useEffect(() => {
-    saveChecklists(checklists);
-  }, [checklists]);
-
-  useEffect(() => {
-    saveHardMode(hardMode);
-  }, [hardMode]);
-
-  const toggleHardMode = useCallback(() => {
-    setHardMode((prev) => !prev);
-  }, []);
+export const ChecklistProvider = ({ initial, children }: ChecklistProviderProps) => {
+  const [checklists, setChecklists] = useState<Checklist[]>(initial);
 
   const createChecklist = (title: string, description: string) => {
     const newChecklist: Checklist = {
@@ -134,7 +120,6 @@ export const ChecklistProvider = ({ children }: ChecklistProviderProps) => {
 
   const value: ChecklistContextType = {
     checklists,
-    hardMode,
     createChecklist,
     updateChecklist,
     deleteChecklist,
@@ -142,7 +127,6 @@ export const ChecklistProvider = ({ children }: ChecklistProviderProps) => {
     updateTask,
     toggleTask,
     deleteTask,
-    toggleHardMode,
   };
 
   return (

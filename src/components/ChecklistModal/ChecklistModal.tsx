@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Modal, TextInput, TextArea, Button, Text } from '@gravity-ui/uikit';
+import { TextInput, TextArea, Button } from '@gravity-ui/uikit';
 import type { Checklist } from '../../types';
-import { useChecklists } from '../../hooks/useChecklists';
+import { useDemo } from '../../hooks/useDemo';
+import { DemoDialog } from '../../demo/DemoDialog';
 import './ChecklistModal.css';
 
 interface ChecklistModalProps {
@@ -17,7 +18,8 @@ interface ValidationErrors {
 }
 
 function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistModalProps, 'open'>) {
-  const { hardMode } = useChecklists();
+  const { faults } = useDemo();
+  const missing = faults.missingNames;
   const [title, setTitle] = useState(checklist?.title || '');
   const [description, setDescription] = useState(checklist?.description || '');
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -25,20 +27,20 @@ function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistMod
 
   const validateTitle = (value: string): string | undefined => {
     if (!value.trim()) {
-      return 'Title is required';
+      return 'Введите название';
     }
     if (value.trim().length < 3) {
-      return 'Title must be at least 3 characters long';
+      return 'Название — не короче 3 символов';
     }
     if (value.trim().length > 100) {
-      return 'Title must not exceed 100 characters';
+      return 'Название — не длиннее 100 символов';
     }
     return undefined;
   };
 
   const validateDescription = (value: string): string | undefined => {
     if (value.trim().length > 500) {
-      return 'Description must not exceed 500 characters';
+      return 'Описание — не длиннее 500 символов';
     }
     return undefined;
   };
@@ -97,20 +99,19 @@ function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistMod
 
   return (
     <div className="checklist-modal__form">
-      {!hardMode &&
-        <h2 id={"checklist-modal-title"} className="checklist-modal__title">
-          {checklist ? 'Edit Checklist' : 'Create New Checklist'}
-        </h2>
-      }
+      <h2 id="checklist-modal-title" className="checklist-modal__title">
+        {checklist ? 'Редактировать чеклист' : 'Новый чеклист'}
+      </h2>
       <div>
-        <Text variant="body-2" className="checklist-modal__label">
-          Title <span style={{ color: 'var(--g-color-text-danger)' }}>*</span>
-        </Text>
+        <label className="checklist-modal__label" htmlFor={missing ? undefined : 'checklist-title'}>
+          Название <span style={{ color: 'var(--g-color-text-danger)' }}>*</span>
+        </label>
         <TextInput
+          id="checklist-title"
           value={title}
           onUpdate={handleTitleChange}
           onBlur={handleTitleBlur}
-          placeholder="Enter checklist title"
+          placeholder="Введите название чеклиста"
           size="l"
           autoFocus
           validationState={touched.title && errors.title ? 'invalid' : undefined}
@@ -118,12 +119,13 @@ function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistMod
         />
       </div>
       <div>
-        <Text variant="body-2" className="checklist-modal__label">Description (optional)</Text>
+        <label className="checklist-modal__label" htmlFor={missing ? undefined : 'checklist-description'}>Описание (необязательно)</label>
         <TextArea
+          id="checklist-description"
           value={description}
           onUpdate={handleDescriptionChange}
           onBlur={handleDescriptionBlur}
-          placeholder="Enter checklist description"
+          placeholder="Введите описание чеклиста"
           rows={3}
           size="l"
           validationState={touched.description && errors.description ? 'invalid' : undefined}
@@ -132,10 +134,10 @@ function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistMod
       </div>
       <div className="checklist-modal__actions">
         <Button view="flat" size="l" onClick={handleClose}>
-          Cancel
+          Отмена
         </Button>
         <Button view="action" size="l" onClick={handleSave} disabled={!isFormValid}>
-          {checklist ? 'Update' : 'Create'}
+          {checklist ? 'Сохранить' : 'Создать'}
         </Button>
       </div>
     </div>
@@ -143,17 +145,14 @@ function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistMod
 }
 
 export const ChecklistModal = ({ open, checklist, onClose, onSave }: ChecklistModalProps) => {
-  const { hardMode } = useChecklists();
   return (
-    <Modal open={open} onClose={onClose} aria-labelledby={hardMode ? undefined : "checklist-modal-title"}>
-      {open && (
-        <ChecklistModalContent
-          key={checklist?.id || 'new'}
-          checklist={checklist}
-          onClose={onClose}
-          onSave={onSave}
-        />
-      )}
-    </Modal>
+    <DemoDialog open={open} onClose={onClose} titleId="checklist-modal-title">
+      <ChecklistModalContent
+        key={checklist?.id || 'new'}
+        checklist={checklist}
+        onClose={onClose}
+        onSave={onSave}
+      />
+    </DemoDialog>
   );
 };

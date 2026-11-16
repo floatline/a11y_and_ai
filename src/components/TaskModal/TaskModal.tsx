@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Modal, TextInput, TextArea, Button, Select, Text } from '@gravity-ui/uikit';
+import { TextInput, TextArea, Button, Select, Text } from '@gravity-ui/uikit';
 import type { Task, Priority } from '../../types';
 import { PRIORITY_OPTIONS, DEFAULT_PRIORITY } from '../../constants';
-import { useChecklists } from '../../hooks/useChecklists';
+import { useDemo } from '../../hooks/useDemo';
+import { DemoDialog } from '../../demo/DemoDialog';
 import taskFieldsConfig from '../../config/taskFieldsConfig.json';
 import './TaskModal.css';
 
@@ -23,7 +24,8 @@ interface ValidationErrors {
 }
 
 function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'>) {
-  const { hardMode } = useChecklists();
+  const { faults } = useDemo();
+  const missing = faults.missingNames;
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
   const [deadline, setDeadline] = useState(task?.deadline || '');
@@ -33,20 +35,20 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
 
   const validateTitle = (value: string): string | undefined => {
     if (!value.trim()) {
-      return 'Title is required';
+      return 'Введите название';
     }
     if (value.trim().length < 3) {
-      return 'Title must be at least 3 characters long';
+      return 'Название — не короче 3 символов';
     }
     if (value.trim().length > 100) {
-      return 'Title must not exceed 100 characters';
+      return 'Название — не длиннее 100 символов';
     }
     return undefined;
   };
 
   const validateDescription = (value: string): string | undefined => {
     if (value.trim().length > 500) {
-      return 'Description must not exceed 500 characters';
+      return 'Описание — не длиннее 500 символов';
     }
     return undefined;
   };
@@ -59,7 +61,7 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
       today.setHours(0, 0, 0, 0);
       
       if (selectedDate < today) {
-        return 'Deadline cannot be in the past';
+        return 'Срок не может быть в прошлом';
       }
     }
     return undefined;
@@ -135,21 +137,23 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
 
   return (
     <div className="task-modal__form">
-      <h2 id={hardMode ? undefined : "task-modal-title"} className="task-modal__title">
-        {task ? 'Edit Task' : 'Create New Task'}
+      <h2 id="task-modal-title" className="task-modal__title">
+        {task ? 'Редактировать задачу' : 'Новая задача'}
       </h2>
       {isFieldVisible('title') && (
         <div>
-          <Text variant="body-2" className="task-modal__label">
-            Title <span style={{ color: 'var(--g-color-text-danger)' }}>*</span>
-          </Text>
+          <label className="task-modal__label" htmlFor={missing ? undefined : 'task-title'}>
+            Название <span style={{ color: 'var(--g-color-text-danger)' }}>*</span>
+          </label>
           <TextInput
+            id="task-title"
             value={title}
             onUpdate={handleTitleChange}
             onBlur={handleTitleBlur}
-            placeholder="Enter task title"
+            placeholder="Введите название задачи"
             size="l"
-            autoFocus
+            // Fault: no autofocus, so with the broken dialog focus stays on «+» behind it
+            autoFocus={!faults.stealAutofocus}
             validationState={touched.title && errors.title ? 'invalid' : undefined}
             errorMessage={touched.title ? errors.title : undefined}
           />
@@ -157,12 +161,13 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
       )}
       {isFieldVisible('description') && (
         <div>
-          <Text variant="body-2" className="task-modal__label">Description</Text>
+          <label className="task-modal__label" htmlFor={missing ? undefined : 'task-description'}>Описание</label>
           <TextArea
+            id="task-description"
             value={description}
             onUpdate={handleDescriptionChange}
             onBlur={handleDescriptionBlur}
-            placeholder="Enter task description"
+            placeholder="Введите описание задачи"
             rows={3}
             size="l"
             validationState={touched.description && errors.description ? 'invalid' : undefined}
@@ -173,25 +178,25 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
       <div className="task-modal__row">
         {isFieldVisible('deadline') && (
           <div>
-            <Text variant="body-2" className="task-modal__label">
-              Deadline (optional)
-            </Text>
+            <label className="task-modal__label" htmlFor={missing ? undefined : 'task-deadline'}>
+              Срок (необязательно)
+            </label>
             <input
+              id="task-deadline"
               type="date"
               value={deadline}
               onChange={(e) => handleDeadlineChange(e.target.value)}
               onBlur={handleDeadlineBlur}
               className="task-modal__date-input"
-              required
-              aria-invalid={hardMode ? undefined : (touched.deadline && errors.deadline ? 'true' : 'false')}
-              aria-describedby={hardMode ? undefined : (touched.deadline && errors.deadline ? 'deadline-error' : undefined)}
+              aria-invalid={missing ? undefined : (touched.deadline && errors.deadline ? 'true' : 'false')}
+              aria-describedby={missing ? undefined : (touched.deadline && errors.deadline ? 'deadline-error' : undefined)}
             />
             {touched.deadline && errors.deadline && (
               <Text
                 id="deadline-error"
                 variant="caption-2"
                 color="danger"
-                aria-live={hardMode ? undefined : "assertive"}
+                aria-live={missing ? undefined : "assertive"}
                 style={{ marginTop: '4px', display: 'block' }}
               >
                 {errors.deadline}
@@ -201,8 +206,9 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
         )}
         {isFieldVisible('priority') && (
           <div>
-            <Text variant="body-2" className="task-modal__label">Priority</Text>
+            <label className="task-modal__label" htmlFor={missing ? undefined : 'task-priority'}>Приоритет</label>
             <Select
+              id="task-priority"
               value={[priority]}
               onUpdate={(values) => setPriority(values[0] as Priority)}
               options={PRIORITY_OPTIONS}
@@ -213,7 +219,7 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
       </div>
       <div className="task-modal__actions">
         <Button view="flat" size="l" onClick={handleClose}>
-          Cancel
+          Отмена
         </Button>
         <Button
           view="action"
@@ -221,7 +227,7 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
           onClick={handleSave}
           disabled={!isFormValid}
         >
-          {task ? 'Update' : 'Create'}
+          {task ? 'Сохранить' : 'Создать'}
         </Button>
       </div>
     </div>
@@ -229,17 +235,14 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
 }
 
 export const TaskModal = ({ open, task, onClose, onSave }: TaskModalProps) => {
-  const { hardMode } = useChecklists();
   return (
-    <Modal open={open} onClose={onClose} aria-labelledby={hardMode ? undefined : "task-modal-title"}>
-      {open && (
-        <TaskModalContent
-          key={task?.id || 'new'}
-          task={task}
-          onClose={onClose}
-          onSave={onSave}
-        />
-      )}
-    </Modal>
+    <DemoDialog open={open} onClose={onClose} titleId="task-modal-title">
+      <TaskModalContent
+        key={task?.id || 'new'}
+        task={task}
+        onClose={onClose}
+        onSave={onSave}
+      />
+    </DemoDialog>
   );
 };

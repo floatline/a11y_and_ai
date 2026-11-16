@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, Text, Button, Icon, Progress } from '@gravity-ui/uikit';
 import { Plus, Pencil, TrashBin, ChevronDown, ChevronUp } from '@gravity-ui/icons';
 import type { Checklist, Task } from '../../types';
-import { useChecklists } from '../../hooks/useChecklists';
+import { useDemo } from '../../hooks/useDemo';
+import { DemoDialog } from '../../demo/DemoDialog';
 import { TaskItem } from '../TaskItem';
 import './ChecklistCard.css';
 
@@ -25,21 +26,35 @@ export const ChecklistCard = ({
   onEditTask,
   onDeleteTask,
 }: ChecklistCardProps) => {
-  const { hardMode } = useChecklists();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const { faults } = useDemo();
+  const missing = faults.missingNames;
+  // Collapsed at start so that finding and opening the checklist is part of the task.
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task>();
+  const deleteChecklistRef = useRef<HTMLButtonElement>(null);
   const completedTasks = checklist.tasks.filter((task) => task.completed).length;
   const totalTasks = checklist.tasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  // With reverseOrder the DOM is reversed and CSS column-reverse restores the visual order.
+  const tasks = faults.reverseOrder ? [...checklist.tasks].reverse() : checklist.tasks;
+  const confirmTitleId = `delete-task-title-${checklist.id}`;
+
+  useEffect(() => {
+    if (!taskToDelete || !faults.stealAutofocus) return;
+    // Fault: the confirmation opens, but focus lands on «delete checklist» behind it.
+    const timer = setTimeout(() => deleteChecklistRef.current?.focus(), 50);
+    return () => clearTimeout(timer);
+  }, [taskToDelete, faults.stealAutofocus]);
 
   return (
     <Card className="checklist-card">
       <div className="checklist-card__header">
         <div className="checklist-card__header-row">
           <button
+            type="button"
             className="checklist-card__expand-button"
             onClick={() => setIsExpanded(!isExpanded)}
-            aria-expanded={hardMode ? undefined : isExpanded}
-            aria-label={hardMode ? undefined : `${checklist.title}. ${isExpanded ? 'Свернуть чеклист' : 'Развернуть чеклист'}`}
+            aria-expanded={missing ? undefined : isExpanded}
           >
             <Icon data={isExpanded ? ChevronUp : ChevronDown} size={20} />
             <span className="checklist-card__title-text">
@@ -51,7 +66,7 @@ export const ChecklistCard = ({
               view="action"
               size="m"
               onClick={() => onAddTask(checklist.id)}
-              aria-label={hardMode ? undefined : "Добавить задачу"}
+              aria-label={missing ? undefined : `Добавить задачу в «${checklist.title}»`}
             >
               <Icon data={Plus} size={16} />
             </Button>
@@ -59,15 +74,16 @@ export const ChecklistCard = ({
               view="outlined"
               size="m"
               onClick={() => onEditChecklist(checklist)}
-              aria-label={hardMode ? undefined : "Редактировать чеклист"}
+              aria-label={missing ? undefined : `Редактировать чеклист «${checklist.title}»`}
             >
               <Icon data={Pencil} size={16} />
             </Button>
             <Button
+              ref={deleteChecklistRef}
               view="outlined"
               size="m"
               onClick={() => onDeleteChecklist(checklist.id)}
-              aria-label={hardMode ? undefined : "Удалить чеклист"}
+              aria-label={missing ? undefined : `Удалить чеклист «${checklist.title}»`}
             >
               <Icon data={TrashBin} size={16} />
             </Button>
@@ -82,7 +98,7 @@ export const ChecklistCard = ({
           <div className="checklist-card__progress">
             <div className="checklist-card__progress-info">
               <Text variant="caption-2" color="secondary">
-                Progress
+                Выполнено
               </Text>
               <Text variant="caption-2" color="secondary">
                 {completedTasks} / {totalTasks}
@@ -95,26 +111,49 @@ export const ChecklistCard = ({
 
       {isExpanded && (
         <div className="checklist-card__tasks">
-          {checklist.tasks.length === 0 ? (
+          {tasks.length === 0 ? (
             <Text variant="body-1" color="secondary" className="checklist-card__empty">
-              No tasks yet. Add your first task!
+              Задач пока нет.
             </Text>
           ) : (
-           <ul className="checklist-card__task-list" role="list">
-             {checklist.tasks.map((task) => (
-               <li key={task.id} className="checklist-card__task-list-item" role="listitem">
-                 <TaskItem
-                   task={task}
-                   onToggle={(taskId) => onToggleTask(checklist.id, taskId)}
-                   onEdit={(task) => onEditTask(checklist.id, task)}
-                   onDelete={(taskId) => onDeleteTask(checklist.id, taskId)}
-                 />
-               </li>
-             ))}
-           </ul>
-         )}
+            <ul className="checklist-card__task-list" role="list">
+              {tasks.map((task) => (
+                <li key={task.id} className="checklist-card__task-list-item" role="listitem">
+                  <TaskItem
+                    task={task}
+                    onToggle={(taskId) => onToggleTask(checklist.id, taskId)}
+                    onEdit={(task) => onEditTask(checklist.id, task)}
+                    onDelete={() => setTaskToDelete(task)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
+
+      <DemoDialog open={Boolean(taskToDelete)} onClose={() => setTaskToDelete(undefined)} titleId={confirmTitleId}>
+        <div className="checklist-card__confirm">
+          <Text as="h2" variant="subheader-3" id={confirmTitleId}>
+            Удалить задачу «{taskToDelete?.title}»?
+          </Text>
+          <div className="checklist-card__confirm-actions">
+            <Button view="flat" size="l" onClick={() => setTaskToDelete(undefined)}>
+              Отмена
+            </Button>
+            <Button
+              view="action"
+              size="l"
+              onClick={() => {
+                if (taskToDelete) onDeleteTask(checklist.id, taskToDelete.id);
+                setTaskToDelete(undefined);
+              }}
+            >
+              Удалить
+            </Button>
+          </div>
+        </div>
+      </DemoDialog>
     </Card>
   );
 };

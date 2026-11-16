@@ -1,0 +1,105 @@
+.register__title,
+.cart__title {
+  display: block;
+  margin-bottom: var(--g-spacing-6);
+}
+
+.register {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-spacing-4);
+  max-width: 420px;
+}
+
+.register__label {
+  display: block;
+  margin-bottom: var(--g-spacing-1);
+  font-weight: 500;
+}
+
+.register__consent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-spacing-2);
+}
+
+.register__terms,
+.cart__confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--g-spacing-4);
+  padding: var(--g-spacing-5);
+}
+
+.cart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-spacing-3);
+  max-width: 640px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cart__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--g-spacing-3);
+  padding: var(--g-spacing-4);
+}
+
+.cart__item_clickable {
+  cursor: pointer;
+}
+
+.cart__image {
+  flex-shrink: 0;
+  border-radius: var(--g-border-radius-m);
+}
+
+.cart__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--g-spacing-2);
+}
+
+.cart__qty {
+  min-width: 3.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-spacing-4);
+  margin-top: var(--g-spacing-6);
+}
+
+.cart__confirm-actions {
+  display: flex;
+  gap: var(--g-spacing-2);
+  align-self: flex-end;
+}
+
+/* Looks like the outlined icon buttons next to it, but it is a bare <svg>. */
+.cart__svg-button {
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border: 1px solid var(--g-color-line-generic);
+  border-radius: var(--g-border-radius-l);
+  cursor: pointer;
+}
