@@ -78,6 +78,7 @@ export const CartCase = ({ shop }: { shop: keyof typeof SHOPS }) => {
   const [items, setItems] = useState(seed);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [ordered, setOrdered] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
 
   const qty = (id: string) => items.find((i) => i.id === id)?.qty ?? 0;
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
@@ -86,8 +87,13 @@ export const CartCase = ({ shop }: { shop: keyof typeof SHOPS }) => {
     report(progress((id) => items.find((i) => i.id === id)?.qty ?? 0, ordered));
   }, [items, ordered, progress, report]);
 
-  const change = (id: string, delta: number) =>
-    setItems((list) => list.map((i) => (i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)));
+  const change = (id: string, delta: number) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    const next = Math.max(0, item.qty + delta);
+    setItems((list) => list.map((i) => (i.id === id ? { ...i, qty: next } : i)));
+    setAnnouncement(`${item.title}: ${next} шт. Итого: ${rub(total + item.price * (next - item.qty))}`);
+  };
   const remove = (id: string) => change(id, -qty(id));
 
   const iconButton = (label: string, glyph: string, junk: string, onClick: () => void, svgOnly = false) =>
@@ -153,17 +159,8 @@ export const CartCase = ({ shop }: { shop: keyof typeof SHOPS }) => {
               // Fault: the whole card is clickable and focusable (tap adds one more) around the real buttons.
               // No role="button" on purpose: with it screen readers treat the card as a leaf and never reach the buttons.
               // Plain div: Gravity Card ignores onClick unless it is an action card, which is a button again.
-              <div
-                className="cart__item_clickable"
-                tabIndex={0}
-                onClick={() => change(item.id, 1)}
-                onKeyDown={(e) => {
-                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    change(item.id, 1);
-                  }
-                }}
-              >
+              // No tabIndex either: a focusable card made NVDA activate the card instead of the +/− inside it.
+              <div className="cart__item_clickable" onClick={() => change(item.id, 1)}>
                 <Card className="cart__item">{card(item)}</Card>
               </div>
             ) : (
@@ -172,6 +169,10 @@ export const CartCase = ({ shop }: { shop: keyof typeof SHOPS }) => {
           </li>
         ))}
       </ul>
+      {/* Quantity and total are plain text: the accessible version says what changed, the broken one stays silent. */}
+      <p className="sr-only" aria-live="polite">
+        {missing ? '' : announcement}
+      </p>
       <div className="cart__footer">
         <Text variant="subheader-3">Итого: {rub(total)}</Text>
         <Button view="action" size="l" disabled={total === 0} onClick={() => setConfirmOpen(true)}>

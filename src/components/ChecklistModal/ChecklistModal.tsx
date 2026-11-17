@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TextInput, TextArea, Button } from '@gravity-ui/uikit';
+import { TextInput, TextArea, Button, Text } from '@gravity-ui/uikit';
 import type { Checklist } from '../../types';
 import { useDemo } from '../../hooks/useDemo';
 import { DemoDialog } from '../../demo/DemoDialog';
@@ -92,26 +92,32 @@ function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistMod
     if (!titleError && !descriptionError) {
       onSave(title.trim(), description.trim());
       onClose();
+      return;
     }
+    // Accessible version: focus the first error so a screen reader reads it; the broken one stays silent
+    if (missing) return;
+    document.getElementById(titleError ? 'checklist-title' : 'checklist-description')?.focus();
   };
-
-  const isFormValid = !validateTitle(title) && !validateDescription(description);
 
   return (
     <div className="checklist-modal__form">
       <h2 id="checklist-modal-title" className="checklist-modal__title">
         {checklist ? 'Редактировать чеклист' : 'Новый чеклист'}
       </h2>
+      <Text as="p" color="secondary" className="checklist-modal__note">
+        Название — обязательное поле.
+      </Text>
       <div>
-        <label className="checklist-modal__label" htmlFor={missing ? undefined : 'checklist-title'}>
-          Название <span style={{ color: 'var(--g-color-text-danger)' }}>*</span>
+        <label className="sr-only" htmlFor={'checklist-title'}>
+          Название <span aria-hidden="true" style={{ color: 'var(--g-color-text-danger)' }}>*</span>
         </label>
         <TextInput
           id="checklist-title"
+          controlProps={{ 'aria-required': true }}
           value={title}
           onUpdate={handleTitleChange}
           onBlur={handleTitleBlur}
-          placeholder="Введите название чеклиста"
+          placeholder="Поездка в Казань"
           size="l"
           autoFocus
           validationState={touched.title && errors.title ? 'invalid' : undefined}
@@ -119,13 +125,13 @@ function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistMod
         />
       </div>
       <div>
-        <label className="checklist-modal__label" htmlFor={missing ? undefined : 'checklist-description'}>Описание (необязательно)</label>
+        <label className="sr-only" htmlFor={'checklist-description'}>Описание (необязательно)</label>
         <TextArea
           id="checklist-description"
           value={description}
           onUpdate={handleDescriptionChange}
           onBlur={handleDescriptionBlur}
-          placeholder="Введите описание чеклиста"
+          placeholder="Всё, что нужно до выезда"
           rows={3}
           size="l"
           validationState={touched.description && errors.description ? 'invalid' : undefined}
@@ -136,7 +142,7 @@ function ChecklistModalContent({ checklist, onClose, onSave }: Omit<ChecklistMod
         <Button view="flat" size="l" onClick={handleClose}>
           Отмена
         </Button>
-        <Button view="action" size="l" onClick={handleSave} disabled={!isFormValid}>
+        <Button view="action" size="l" onClick={handleSave}>
           {checklist ? 'Сохранить' : 'Создать'}
         </Button>
       </div>

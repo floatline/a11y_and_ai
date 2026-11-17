@@ -14,3 +14,34 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Visible to screen readers only. Gravity UI has no public class for this.
+   The A11Y Project pattern: a real 1×1 box clipped to its middle. No negative margin, and clip-path
+   next to the old `clip`, so WebKit does not treat the text as fully clipped away from VoiceOver. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* WCAG 2.2 AA contrast. Gravity's light theme defaults fail on white:
+   secondary text 3.98:1, placeholders 2.11:1, input and checkbox borders 1.25–1.5:1,
+   «Средний»/«Низкий» labels 3.85/3.71:1, info links 3.58:1.
+   Body carries both classes, so this wins over `.g-root_theme_light`. */
+.g-root.g-root_theme_light {
+  --g-color-text-secondary: rgba(0, 0, 0, 0.65); /* 7.0:1 */
+  --g-color-text-hint: rgba(0, 0, 0, 0.56); /* placeholders, 4.9:1 */
+  --g-color-line-generic-accent: rgba(0, 0, 0, 0.45); /* checkbox and radio borders, 3.4:1 */
+  --g-text-input-border-color: rgba(0, 0, 0, 0.45);
+  --g-color-text-info: #1a5fa8;
+  --g-color-text-warning-heavy: #8f4400;
+  --g-color-text-positive-heavy: #1d6b45;
+}
+
+.g-root .g-select-control__button::before {
+  border-color: rgba(0, 0, 0, 0.45);
+}

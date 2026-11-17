@@ -130,27 +130,34 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
     if (!titleError && !descriptionError && !deadlineError) {
       onSave(title.trim(), description.trim(), deadline, priority);
       onClose();
+      return;
     }
+    // Accessible version: focus the first error so a screen reader reads it; the broken one stays silent
+    if (missing) return;
+    const firstError = titleError ? 'task-title' : descriptionError ? 'task-description' : 'task-deadline';
+    document.getElementById(firstError)?.focus();
   };
-
-  const isFormValid = !validateTitle(title) && !validateDescription(description) && !validateDeadline(deadline);
 
   return (
     <div className="task-modal__form">
       <h2 id="task-modal-title" className="task-modal__title">
         {task ? 'Редактировать задачу' : 'Новая задача'}
       </h2>
+      <Text as="p" color="secondary" className="task-modal__note">
+        Название — обязательное поле.
+      </Text>
       {isFieldVisible('title') && (
         <div>
-          <label className="task-modal__label" htmlFor={missing ? undefined : 'task-title'}>
-            Название <span style={{ color: 'var(--g-color-text-danger)' }}>*</span>
+          <label className="sr-only" htmlFor={'task-title'}>
+            Название <span aria-hidden="true" style={{ color: 'var(--g-color-text-danger)' }}>*</span>
           </label>
           <TextInput
             id="task-title"
+            controlProps={{ 'aria-required': true }}
             value={title}
             onUpdate={handleTitleChange}
             onBlur={handleTitleBlur}
-            placeholder="Введите название задачи"
+            placeholder="Купить билеты на поезд"
             size="l"
             // Fault: no autofocus, so with the broken dialog focus stays on «+» behind it
             autoFocus={!faults.stealAutofocus}
@@ -161,13 +168,13 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
       )}
       {isFieldVisible('description') && (
         <div>
-          <label className="task-modal__label" htmlFor={missing ? undefined : 'task-description'}>Описание</label>
+          <label className="sr-only" htmlFor={'task-description'}>Описание</label>
           <TextArea
             id="task-description"
             value={description}
             onUpdate={handleDescriptionChange}
             onBlur={handleDescriptionBlur}
-            placeholder="Введите описание задачи"
+            placeholder="Взять зарядку и кликер"
             rows={3}
             size="l"
             validationState={touched.description && errors.description ? 'invalid' : undefined}
@@ -178,7 +185,7 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
       <div className="task-modal__row">
         {isFieldVisible('deadline') && (
           <div>
-            <label className="task-modal__label" htmlFor={missing ? undefined : 'task-deadline'}>
+            <label className="sr-only" htmlFor={'task-deadline'}>
               Срок (необязательно)
             </label>
             <input
@@ -206,7 +213,7 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
         )}
         {isFieldVisible('priority') && (
           <div>
-            <label className="task-modal__label" htmlFor={missing ? undefined : 'task-priority'}>Приоритет</label>
+            <label className="sr-only" htmlFor={'task-priority'}>Приоритет</label>
             <Select
               id="task-priority"
               value={[priority]}
@@ -225,7 +232,6 @@ function TaskModalContent({ task, onClose, onSave }: Omit<TaskModalProps, 'open'
           view="action"
           size="l"
           onClick={handleSave}
-          disabled={!isFormValid}
         >
           {task ? 'Сохранить' : 'Создать'}
         </Button>

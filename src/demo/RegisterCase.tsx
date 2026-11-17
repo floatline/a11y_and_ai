@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import { Button, Checkbox, Select, Text, TextInput } from '@gravity-ui/uikit';
 import { useDemo } from '../hooks/useDemo';
 import { DemoDialog } from './DemoDialog';
@@ -8,10 +8,11 @@ type TextField = 'name' | 'email' | 'topic';
 type Field = TextField | 'format';
 type Block = Field | 'consent' | 'submit';
 
-const FIELDS: { id: TextField; label: string; type: 'text' | 'email' }[] = [
-  { id: 'name', label: 'Имя', type: 'text' },
-  { id: 'email', label: 'Email', type: 'email' },
-  { id: 'topic', label: 'Тема доклада', type: 'text' },
+// The label is for screen readers only (.sr-only), sighted users see an example in the field.
+const FIELDS: { id: TextField; label: string; example: string; type: 'text' | 'email'; autoComplete: string }[] = [
+  { id: 'name', label: 'Имя', example: 'Иванов Иван Иванович', type: 'text', autoComplete: 'name' },
+  { id: 'email', label: 'Email', example: 'ivan@example.com', type: 'email', autoComplete: 'email' },
+  { id: 'topic', label: 'Тема доклада', example: 'Доступность и ИИ на практике', type: 'text', autoComplete: 'off' },
 ];
 
 const FORMAT_OPTIONS = [
@@ -57,6 +58,9 @@ export const RegisterCase = () => {
     );
   }
 
+  // In the accessible version the consent error is tied to its checkbox, like the field errors.
+  const consentError = triedSubmit && !consent && !missing;
+
   const blocks: Record<Block, ReactNode> = {
     consent: (
       <div className="register__consent">
@@ -66,13 +70,27 @@ export const RegisterCase = () => {
             <span>Я принимаю</span>
           </>
         ) : (
-          <Checkbox size="l" checked={consent} onUpdate={setConsent}>
+          <Checkbox
+            size="l"
+            checked={consent}
+            onUpdate={setConsent}
+            id="register-consent"
+            controlProps={{
+              'aria-invalid': consentError || undefined,
+              'aria-describedby': consentError ? 'register-consent-error' : undefined,
+            }}
+          >
             Я принимаю условия использования
           </Checkbox>
         )}
         <Button view="flat-info" size="m" onClick={() => setTermsOpen(true)}>
           {missing ? 'условия' : 'Прочитать условия'}
         </Button>
+        {triedSubmit && !consent && (
+          <Text id="register-consent-error" color="danger" className="register__consent-error">
+            Примите условия использования
+          </Text>
+        )}
       </div>
     ),
     submit: (
@@ -81,42 +99,40 @@ export const RegisterCase = () => {
       </Button>
     ),
     format: (
-      <div>
-        {!missing && (
-          <label className="register__label" htmlFor="register-format">
-            Формат
-          </label>
-        )}
+      <>
+        <label className="sr-only" htmlFor={'register-format'}>
+          Формат
+        </label>
         <Select
           id="register-format"
           size="l"
           width="max"
-          placeholder="Формат"
+          placeholder="Доклад или воркшоп"
           options={FORMAT_OPTIONS}
           value={values.format ? [values.format] : []}
           onUpdate={([format]) => setValues((v) => ({ ...v, format }))}
           validationState={triedSubmit && errors.format ? 'invalid' : undefined}
           errorMessage={triedSubmit ? errors.format : undefined}
         />
-      </div>
+      </>
     ),
     ...Object.fromEntries(
       FIELDS.map((f) => {
         const showError = (touched[f.id] || triedSubmit) && errors[f.id];
         return [
           f.id,
-          <div key={f.id}>
-            {/* Fault: placeholder only, it disappears once you type */}
-            {!missing && (
-              <label className="register__label" htmlFor={`register-${f.id}`}>
-                {f.label}
-              </label>
-            )}
+          <Fragment key={f.id}>
+            {/* Linked in both modes: NVDA must always hear the field name; the form's faults are order, autofocus and focus */}
+            <label className="sr-only" htmlFor={`register-${f.id}`}>
+              {f.label}
+            </label>
             <TextInput
               id={`register-${f.id}`}
               type={f.type}
               size="l"
-              placeholder={f.label}
+              placeholder={f.example}
+              autoComplete={f.autoComplete}
+              controlProps={{ 'aria-required': true }}
               value={values[f.id]}
               onUpdate={(value) => setValues((v) => ({ ...v, [f.id]: value }))}
               onBlur={() => setTouched((t) => ({ ...t, [f.id]: true }))}
@@ -125,7 +141,7 @@ export const RegisterCase = () => {
               validationState={showError ? 'invalid' : undefined}
               errorMessage={showError ? errors[f.id] : undefined}
             />
-          </div>,
+          </Fragment>,
         ];
       })
     ) as Record<TextField, ReactNode>,
@@ -138,13 +154,24 @@ export const RegisterCase = () => {
       <Text as="h2" variant="display-1" className="register__title">
         Заявка на доклад
       </Text>
+      <Text as="p" color="secondary" className="register__note">
+        Все поля обязательны.
+      </Text>
       <form
         className="register"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
           setTriedSubmit(true);
-          if (fieldsValid && consent) setSubmitted(true);
+          if (fieldsValid && consent) {
+            setSubmitted(true);
+            return;
+          }
+          // Accessible version: move focus to the first error, otherwise a screen reader user hears nothing
+          // after pressing the button. The broken version leaves focus on the button.
+          if (missing) return;
+          const firstInvalid = VISUAL_ORDER.find((b) => (b === 'consent' ? !consent : errors[b as Field]));
+          if (firstInvalid) document.getElementById(`register-${firstInvalid}`)?.focus();
         }}
       >
         {order.map((block) => (
@@ -152,11 +179,6 @@ export const RegisterCase = () => {
             {blocks[block]}
           </div>
         ))}
-        {triedSubmit && !consent && (
-          <Text color="danger" style={{ order: VISUAL_ORDER.length }}>
-            Примите условия использования
-          </Text>
-        )}
       </form>
 
       <DemoDialog open={termsOpen} onClose={() => setTermsOpen(false)} titleId="terms-title">

@@ -14,8 +14,14 @@
   margin-bottom: var(--g-spacing-2);
 }
 
-.checklist-card__expand-button {
+.checklist-card__heading {
   flex: 1;
+  margin: 0;
+  font: inherit;
+}
+
+.checklist-card__expand-button {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: var(--g-spacing-2);

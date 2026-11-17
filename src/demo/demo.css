@@ -191,17 +191,6 @@
   margin-top: var(--g-spacing-2);
 }
 
-.demo-bar__visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
 
 .landing,
 .demo-bar__card {
@@ -296,4 +285,15 @@
 .demo-bar__hindered ul {
   margin: 0;
   padding-left: var(--g-spacing-5);
+}
+
+/* Landing, cards and results: page content below the banner. */
+.demo-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* WCAG 2.5.8: 24px target spacing between the host's small checkboxes. */
+.demo-bar__host .demo-bar__fieldset {
+  gap: var(--g-spacing-3);
 }

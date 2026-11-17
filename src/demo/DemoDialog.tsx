@@ -20,7 +20,8 @@ export const DemoDialog = ({ open, onClose, titleId, children }: DemoDialogProps
   if (!faults.brokenModal) {
     return (
       // disablePortal keeps the dialog inside .demo-surface, so fault styles and the blank screen reach it
-      <Modal open={open} onClose={onClose} aria-labelledby={labelledBy} disablePortal>
+      // initialFocus={0}: the first field or button, not the whole dialog box, so NVDA lands where the user acts
+      <Modal open={open} onClose={onClose} aria-labelledby={labelledBy} initialFocus={0} disablePortal>
         {open && children}
       </Modal>
     );

@@ -5,27 +5,19 @@
   padding: var(--g-spacing-5);
 }
 
-.checklist-modal__title {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.checklist-modal__label {
-  display: block;
-  margin-bottom: var(--g-spacing-1);
-  font-weight: 500;
-}
-
 .checklist-modal__actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--g-spacing-2);
   margin-top: var(--g-spacing-4);
+}
+
+.checklist-modal__title {
+  margin: 0;
+  font-size: var(--g-text-subheader-3-font-size);
+  line-height: var(--g-text-subheader-3-line-height);
+}
+
+.checklist-modal__note {
+  margin: calc(-1 * var(--g-spacing-2)) 0 0;
 }

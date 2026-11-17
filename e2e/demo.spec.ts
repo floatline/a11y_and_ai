@@ -8,7 +8,17 @@ test.describe('Квест', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Квест: ты — спикер конференции' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /Как проходить на этом устройстве/ })).toBeVisible();
+    // page content is the main landmark, not part of the banner
+    await expect(page.getByRole('main').getByRole('button', { name: 'Начать квест' })).toBeVisible();
+    await expect(page.getByRole('banner').getByRole('button', { name: 'Начать квест' })).toHaveCount(0);
     await expect(page.locator('input[name="case"]').first()).toBeHidden();
+  });
+
+  test('если поле украло фокус, задание всё равно озвучивается', async ({ page }) => {
+    await startQuest(page);
+    // the application form autofocuses Email (stealAutofocus), so the task heading is not focused
+    await expect(page.locator('#register-email')).toBeFocused();
+    await expect(page.locator('.demo-bar [aria-live="polite"]')).toHaveText(/^Задание: Подай заявку на доклад/);
   });
 
   test('карточка «Дальше» между делами, после последнего — сразу итог', async ({ page }) => {
@@ -35,7 +45,7 @@ test.describe('Квест', () => {
     }
     // «Добавить задачу» in hard mode: unnamed «+», broken dialog
     await surface(page).locator('.checklist-card__actions').first().locator('button').first().click();
-    await page.getByPlaceholder('Введите название задачи').fill('Проверить презентацию');
+    await page.locator('#task-title').fill('Проверить презентацию');
     await page.locator('.demo-dialog').getByRole('button', { name: 'Создать' }).click();
     await page.getByRole('button', { name: 'Пропустить' }).click();
     await next(page);
@@ -179,17 +189,24 @@ test.describe('Стенд: дела', () => {
     await expect(result(page)).toBeVisible();
   });
 
-  test('Заявка, сложный: автофокус на email, порядок Tab перемешан', async ({ page }) => {
+  test('Заявка, сложный: автофокус на email, порядок Tab перемешан, имена полей есть', async ({ page }) => {
     await startHard(page, '2a');
-    await expect(page.getByPlaceholder('Email')).toBeFocused();
-    await expect(surface(page).locator('input').first()).toHaveAttribute('placeholder', 'Тема доклада');
-    await expect(surface(page).locator('label[for]')).toHaveCount(0);
+    await expect(page.locator('#register-email')).toBeFocused();
+    await expect(surface(page).locator('input').first()).toHaveAttribute('id', 'register-topic');
+    // labels stay linked in hard mode too: NVDA must always hear the field name
+    await expect(surface(page).getByRole('textbox', { name: 'Email' })).toBeFocused();
   });
 
   test('Заявка, обычный: подписанные поля, отправка завершает дело', async ({ page }) => {
     await startOriginal(page, '2a');
     // focus was placed at start, while stealAutofocus was still on; here we check names, not autofocus
     await expect(page.getByRole('textbox', { name: 'Имя' })).toBeVisible();
+    await expect(page.getByText('Все поля обязательны.')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Имя' })).toHaveAttribute('autocomplete', 'name');
+    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveAttribute('autocomplete', 'email');
+    // empty submit: focus goes to the first error, so NVDA reads the field and its error
+    await page.getByRole('button', { name: 'Отправить заявку' }).click();
+    await expect(page.getByRole('textbox', { name: 'Имя' })).toBeFocused();
     await page.getByRole('textbox', { name: 'Имя' }).fill('Аня');
     await page.getByRole('textbox', { name: 'Email' }).fill('anya@example.com');
     await page.getByRole('textbox', { name: 'Тема доклада' }).fill('ИИ и скринридеры');
@@ -209,15 +226,12 @@ test.describe('Стенд: дела', () => {
     await expect(surface(page).getByRole('button', { name: /Увеличить количество/ })).toHaveCount(0);
   });
 
-  test('+1, сложный: карточка кликабельна и в фокусе, но кнопки внутри достижимы', async ({ page }) => {
+  test('+1, сложный: карточка кликабельна, но не фокусируется — кнопки внутри нажимаются', async ({ page }) => {
     await startHard(page, '1a');
     const guest = surface(page).locator('.cart__item_clickable', { hasText: 'Гость +1' });
-    await expect(guest).toHaveAttribute('tabindex', '0');
+    // not focusable and not a button: NVDA activates the +/− inside, not the card
+    await expect(guest).not.toHaveAttribute('tabindex');
     await expect(surface(page).locator('[role="button"]')).toHaveCount(0);
-    // Tab from the card goes into its buttons
-    await guest.focus();
-    await page.keyboard.press('Tab');
-    await expect(guest.locator('button').first()).toBeFocused();
     // a tap on the card itself adds one more
     await guest.locator('.cart__info').click();
     await expect(guest).toContainText('1 шт.');
@@ -235,11 +249,12 @@ test.describe('Стенд: дела', () => {
   test('+1, обычный: гость вписан, заказ без ошибок', async ({ page }) => {
     await startOriginal(page, '1a');
     await page.getByRole('button', { name: 'Увеличить количество: Гость +1, сейчас 0' }).click();
+    await expect(surface(page).locator('[aria-live="polite"]')).toHaveText('Гость +1: 1 шт. Итого: 7 000 ₽');
     await page.getByRole('button', { name: 'Убрать из корзины: Афтерпати' }).click();
     await page.getByRole('button', { name: 'Оформить заказ' }).click();
     await page.getByRole('dialog', { name: 'Оформить заказ на 5 000 ₽?' }).getByRole('button', { name: 'Оформить' }).click();
 
-    await expect(page.getByRole('heading', { name: /^Гость вписан! \d+:\d+$/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Гость вписан! \d+ с$/ })).toBeVisible();
     await next(page);
     await expect(result(page)).toBeVisible();
     await expect(page.getByText(/ошибок/)).toHaveCount(0);

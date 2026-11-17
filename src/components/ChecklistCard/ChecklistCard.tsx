@@ -31,6 +31,7 @@ export const ChecklistCard = ({
   // Collapsed at start so that finding and opening the checklist is part of the task.
   const [isExpanded, setIsExpanded] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task>();
+  const [confirmChecklistDelete, setConfirmChecklistDelete] = useState(false);
   const deleteChecklistRef = useRef<HTMLButtonElement>(null);
   const completedTasks = checklist.tasks.filter((task) => task.completed).length;
   const totalTasks = checklist.tasks.length;
@@ -50,17 +51,20 @@ export const ChecklistCard = ({
     <Card className="checklist-card">
       <div className="checklist-card__header">
         <div className="checklist-card__header-row">
-          <button
-            type="button"
-            className="checklist-card__expand-button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            aria-expanded={missing ? undefined : isExpanded}
-          >
-            <Icon data={isExpanded ? ChevronUp : ChevronDown} size={20} />
-            <span className="checklist-card__title-text">
-              {checklist.title}
-            </span>
-          </button>
+          {/* Accordion pattern: the toggle sits inside a heading, so NVDA's H key jumps between checklists */}
+          <h3 className="checklist-card__heading">
+            <button
+              type="button"
+              className="checklist-card__expand-button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={missing ? undefined : isExpanded}
+            >
+              <Icon data={isExpanded ? ChevronUp : ChevronDown} size={20} />
+              <span className="checklist-card__title-text">
+                {checklist.title}
+              </span>
+            </button>
+          </h3>
           <div className="checklist-card__actions">
             <Button
               view="action"
@@ -82,7 +86,11 @@ export const ChecklistCard = ({
               ref={deleteChecklistRef}
               view="outlined"
               size="m"
-              onClick={() => onDeleteChecklist(checklist.id)}
+              // Deleting a whole list asks first (WCAG 3.3.4). With broken dialogs it deletes at once:
+              // that is the trap in «Удалить черновик», where focus is stolen onto this button.
+              onClick={() =>
+                faults.brokenModal ? onDeleteChecklist(checklist.id) : setConfirmChecklistDelete(true)
+              }
               aria-label={missing ? undefined : `Удалить чеклист «${checklist.title}»`}
             >
               <Icon data={TrashBin} size={16} />
@@ -149,6 +157,26 @@ export const ChecklistCard = ({
                 setTaskToDelete(undefined);
               }}
             >
+              Удалить
+            </Button>
+          </div>
+        </div>
+      </DemoDialog>
+
+      <DemoDialog
+        open={confirmChecklistDelete}
+        onClose={() => setConfirmChecklistDelete(false)}
+        titleId={`delete-checklist-title-${checklist.id}`}
+      >
+        <div className="checklist-card__confirm">
+          <Text as="h2" variant="subheader-3" id={`delete-checklist-title-${checklist.id}`}>
+            Удалить чеклист «{checklist.title}» вместе со всеми задачами?
+          </Text>
+          <div className="checklist-card__confirm-actions">
+            <Button view="flat" size="l" onClick={() => setConfirmChecklistDelete(false)}>
+              Отмена
+            </Button>
+            <Button view="action" size="l" onClick={() => onDeleteChecklist(checklist.id)}>
               Удалить
             </Button>
           </div>

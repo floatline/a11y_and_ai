@@ -10,6 +10,8 @@ test.describe('ToDo в обычном режиме', () => {
   test('чеклисты свёрнуты при старте и раскрываются', async ({ page }) => {
     const toggle = surface(page).getByRole('button', { name: PREP, exact: true });
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    // the toggle sits in a heading, so NVDA's H key finds every checklist
+    await expect(surface(page).getByRole('heading', { name: PREP, level: 3 })).toBeVisible();
     await expect(page.getByText('Купить билет на поезд', { exact: true })).toBeHidden();
 
     await toggle.click();
@@ -53,8 +55,23 @@ test.describe('ToDo в обычном режиме', () => {
     await expect(page.getByText('Купить билет на поезд', { exact: true })).toBeVisible();
   });
 
-  test('удалить чеклист', async ({ page }) => {
+  test('удаление чеклиста спрашивает подтверждение (WCAG 3.3.4)', async ({ page }) => {
     await page.getByRole('button', { name: 'Удалить чеклист «Личное»' }).click();
-    await expect(surface(page).getByRole('button', { name: 'Личное', exact: true })).toBeHidden();
+    const dialog = page.getByRole('dialog', { name: 'Удалить чеклист «Личное» вместе со всеми задачами?' });
+    await dialog.getByRole('button', { name: 'Отмена' }).click();
+    await expect(surface(page).getByRole('button', { name: 'Личное', exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Удалить чеклист «Личное»' }).click();
+    await dialog.getByRole('button', { name: 'Удалить' }).click();
+    await expect(surface(page).getByRole('button', { name: 'Личное', exact: true })).toHaveCount(0);
+  });
+
+  test('«Создать» активна; пустое название — фокус на поле с ошибкой', async ({ page }) => {
+    await page.getByRole('button', { name: 'Новый чеклист' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Новый чеклист' });
+    await expect(dialog.getByText('Название — обязательное поле.')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Создать' }).click();
+    await expect(dialog.getByRole('textbox', { name: 'Название' })).toBeFocused();
+    await expect(dialog.getByText('Введите название')).toBeVisible();
   });
 });
