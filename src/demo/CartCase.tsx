@@ -36,9 +36,9 @@ const SHOPS = {
   merch: {
     title: 'Мерч конференции',
     seed: [
-      { id: 'merch-1', title: 'Мерч №1', price: 3500, qty: 0, image: { src: '/merch/hoodie.svg', alt: 'Зелёное худи с капюшоном' } },
-      { id: MUG, title: 'Мерч №2', price: 900, qty: 0, image: { src: '/merch/mug.svg', alt: 'Синяя кружка с надписью a11y' } },
-      { id: 'merch-3', title: 'Мерч №3', price: 1500, qty: 0, image: { src: '/merch/tshirt.svg', alt: 'Красная футболка с надписью a11y' } },
+      { id: 'merch-1', title: 'Мерч №1', price: 3500, qty: 0, image: { src: `${import.meta.env.BASE_URL}merch/hoodie.svg`, alt: 'Зелёное худи с капюшоном' } },
+      { id: MUG, title: 'Мерч №2', price: 900, qty: 0, image: { src: `${import.meta.env.BASE_URL}merch/mug.svg`, alt: 'Синяя кружка с надписью a11y' } },
+      { id: 'merch-3', title: 'Мерч №3', price: 1500, qty: 0, image: { src: `${import.meta.env.BASE_URL}merch/tshirt.svg`, alt: 'Красная футболка с надписью a11y' } },
     ] as Item[],
     progress: (qty: Qty, ordered: boolean): Progress => ({
       steps: [qty(MUG) > 0, ordered],
